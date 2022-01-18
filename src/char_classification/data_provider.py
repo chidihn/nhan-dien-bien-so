@@ -15,6 +15,7 @@ class Datasets(object):
         # Preprocess
         self.convert_data_format()
 
+
     def gen(self):
         np.random.shuffle(self.all_data)
         images = []

@@ -3,6 +3,7 @@ import numpy as np
 from skimage import measure
 from imutils import perspective
 import imutils
+import matplotlib.pyplot as plt
 
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -40,20 +41,24 @@ class E2E(object):
         for coordinate in coordinates:
             yield coordinate
 
+    
+    def plot_img(self, img):
+        plt.imshow(img)
+        plt.show()
     def segmentation(self, LpRegion):
-        # apply thresh to extracted licences plate
+
         V = cv2.split(cv2.cvtColor(LpRegion, cv2.COLOR_BGR2HSV))[2]
 
-        # adaptive threshold
+        # adaptive threshold - Làm nổi bật phần ta muốn lấy
         T = threshold_local(V, 15, offset=10, method="gaussian")
         thresh = (V > T).astype("uint8") * 255
-
+        self.plot_img(thresh)
         # convert black pixel of digits to white pixel
         thresh = cv2.bitwise_not(thresh)
         thresh = imutils.resize(thresh, width=400)
         thresh = cv2.medianBlur(thresh, 5)
 
-        # connected components analysis
+        # connected components analysis (CCA)
         labels = measure.label(thresh, connectivity=2, background=0)
 
         # loop over the unique components
@@ -73,13 +78,11 @@ class E2E(object):
                 contour = max(contours, key=cv2.contourArea)
                 (x, y, w, h) = cv2.boundingRect(contour)
 
-                # rule to determine characters
                 aspectRatio = w / float(h)
                 solidity = cv2.contourArea(contour) / float(w * h)
                 heightRatio = h / float(LpRegion.shape[0])
 
                 if 0.1 < aspectRatio < 1.0 and solidity > 0.1 and 0.35 < heightRatio < 2.0:
-                    # extract characters
                     candidate = np.array(mask[y:y + h, x:x + w])
                     square_candidate = convert2Square(candidate)
                     square_candidate = cv2.resize(square_candidate, (28, 28), cv2.INTER_AREA)
@@ -100,7 +103,7 @@ class E2E(object):
 
         self.candidates = []
         for i in range(len(result_idx)):
-            if result_idx[i] == 31:    # if is background or noise, ignore it
+            if result_idx[i] == 31:  
                 continue
             self.candidates.append((ALPHA_DICT[result_idx[i]], coordinates[i]))
 
@@ -120,34 +123,32 @@ class E2E(object):
         first_line = sorted(first_line, key=take_second)
         second_line = sorted(second_line, key=take_second)
 
-        if len(second_line) == 0:  # if license plate has 1 line
+        if len(second_line) == 0: 
             license_plate = "".join([str(ele[0]) for ele in first_line])
-        else:   # if license plate has 2 lines
+        else:  
             license_plate = "".join([str(ele[0]) for ele in first_line]) + "-" + "".join([str(ele[0]) for ele in second_line])
 
         return license_plate
 
     def predict(self, image):
-        # Input image or frame
+        
         self.image = image
 
-        for coordinate in self.extractLP():     # detect license plate by yolov3
+        for coordinate in self.extractLP():     
             self.candidates = []
 
-            # convert (x_min, y_min, width, height) to coordinate(top left, top right, bottom left, bottom right)
             pts = order_points(coordinate)
-            print(pts)
-            # crop number plate used by bird's eyes view transformation
+
             LpRegion = perspective.four_point_transform(self.image, pts)
            
-            # segmentation
+            # segmentation 
             self.segmentation(LpRegion)
-
             # recognize characters
             self.recognizeChar()
 
             # format and display license plate
             license_plate = self.format()
+            print(license_plate)
 
             # draw labels
             self.image = draw_labels_and_boxes(self.image, license_plate, coordinate)

@@ -33,9 +33,9 @@ for fi in os.listdir(path):
         label = -1
         ValueError("Don't match file")
 
-    img_fi_path = os.listdir(path + fi)
+    img_fi_path = os.listdir(path )
     for img_path in img_fi_path:
-        img = cv2.imread(path + fi + "/" + img_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(path  + "/" + img_path, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (28, 28), cv2.INTER_AREA)
         img = img.reshape((28, 28, 1))
         data.append((img, label))
@@ -44,11 +44,12 @@ for fi in os.listdir(path):
 np.save("./data/digits.npy", data)
 
 
+
 path = "./data/categorized/alphas/"
 data = []
-
-
 for fi in os.listdir(path):
+    print(path + fi)
+
     if fi == "A":
         label = 0
     elif fi == "B":
@@ -95,13 +96,13 @@ for fi in os.listdir(path):
         label = -1
         ValueError("Don't match file")
 
-    img_fi_path = os.listdir(path + fi)
+    img_fi_path = os.listdir(path )
     for img_path in img_fi_path:
-        img = cv2.imread(path + fi + "/" + img_path, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(path  + "/" + img_path, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (28, 28), cv2.INTER_AREA)
         img = img.reshape((28, 28, 1))
         data.append((img, label))
-
+    img_fi_path = os.listdir(path )
 
 np.save("./data/alphas.npy", data)
 
